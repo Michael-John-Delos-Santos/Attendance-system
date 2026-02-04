@@ -1,196 +1,108 @@
 <?php
 require_once 'config.php';
-requireLogin();
-
-$currentUser = getCurrentUser();
+requireAdmin();
+define('PAGE_TITLE', 'Scanner');
+require_once 'header.php';
 ?>
 
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>QR Scanner - <?= SCHOOL_NAME ?></title>
-    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
-    <link href="app/globals.css" rel="stylesheet">
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
-</head>
-<body class="bg-gray-50 text-gray-700 font-sans">
-    <div class="flex min-h-screen">
-        <!-- Sidebar -->
-        <div class="w-64 flex-shrink-0 bg-white border-r border-gray-200 p-6">
-            <div class="mb-8">
-                <h1 class="text-xl font-bold text-blue-700"><?= SCHOOL_NAME ?></h1>
-                <p class="text-sm text-gray-500">Attendance System</p>
-            </div>
-                        
-            <nav class="flex flex-col space-y-2">
-                <a href="index.php" class="px-3 py-2 rounded-lg hover:bg-blue-50">📊 Dashboard</a>
-                <a href="scan.php" class="px-3 py-2 rounded-lg bg-blue-100 text-blue-700 font-medium">📱 QR Scanner</a>
-                <a href="students.php" class="px-3 py-2 rounded-lg hover:bg-blue-50">👥 Students</a>
-                <a href="attendance.php" class="px-3 py-2 rounded-lg hover:bg-blue-50">📋 Attendance</a>
-                <a href="reports.php" class="px-3 py-2 rounded-lg hover:bg-blue-50">📈 Reports</a>
-                <?php if ($currentUser['role'] === 'Admin'): ?>
-                <a href="faculty.php" class="px-3 py-2 rounded-lg hover:bg-blue-50">👨‍🏫 Faculty</a>
-                <?php endif; ?>
-                <a href="logout.php" class="px-3 py-2 rounded-lg hover:bg-red-100 text-red-600 font-medium">🚪 Logout</a>
-            </nav>
+<div class="flex h-screen overflow-hidden">
+    <?php include 'sidebar.php'; ?>
+
+    <main class="flex-1 overflow-y-auto p-8 flex flex-col items-center justify-center bg-muted/20">
+        <div class="w-full max-w-5xl grid grid-cols-1 lg:grid-cols-2 gap-8">
             
-            <div class="mt-8 p-4 bg-blue-50 rounded-lg text-center">
-                <p class="text-sm font-medium">Welcome back,</p>
-                <p class="font-semibold text-blue-700"><?= htmlspecialchars($currentUser['full_name']) ?></p>
-            </div>
-        </div>
-
-        <!-- Main Content -->
-        <div class="flex-1 p-6 bg-gray-50">
-            <div class="mb-6">
-                <h2 class="text-3xl font-bold text-gray-800 mb-2">QR Code Scanner</h2>
-                <p class="text-gray-500">Scan student QR codes to record attendance</p>
-            </div>
-
-            <div class="max-w-2xl mx-auto">
-                <div class="php-card text-center bg-white shadow-md rounded-xl p-6">
-                    <div class="mb-6">
-                        <button id="start-scan" class="php-button text-lg px-8 py-4 bg-blue-600 text-white rounded-lg hover:bg-blue-700">
-                            📱 Start Camera
-                        </button>
-                        <button id="stop-scan" class="php-button secondary text-lg px-8 py-4 ml-4 bg-red-600 text-white rounded-lg hover:bg-red-700" style="display: none;">
-                            ⏹️ Stop Camera
-                        </button>
-                    </div>
-
-                    <div id="qr-reader" class="border border-gray-300 rounded-lg" style="display: none;"></div>
-                    
-                    <div id="scan-result" class="scan-result mt-4 text-center" style="display: none;"></div>
+            <div class="bg-card p-6 rounded-lg border shadow-sm flex flex-col">
+                <h3 class="font-bold text-lg mb-4 flex items-center gap-2 text-primary">
+                    <i class="fa-solid fa-camera"></i> Live Scanner
+                </h3>
+                <div id="reader" class="rounded-lg overflow-hidden bg-black/5 h-80 w-full relative border-2 border-dashed border-border flex items-center justify-center">
+                    <p class="text-muted-foreground text-sm flex flex-col items-center gap-2">
+                        <i class="fa-solid fa-video-slash text-2xl"></i>
+                        Camera is off
+                    </p>
                 </div>
-
-                <!-- Recent Scans -->
-                <div class="php-card mt-6 bg-white shadow-md rounded-xl p-6">
-                    <h3 class="text-xl font-semibold mb-4">Recent Scans</h3>
-                    <div id="recent-scans">
-                        <p class="text-gray-500 text-center py-4">No scans yet today</p>
+                <div class="mt-6 flex justify-center gap-4">
+                    <button onclick="startScanner()" id="start-btn" class="bg-primary text-primary-foreground px-8 py-3 rounded-full font-bold shadow hover:opacity-90 transition-all flex items-center gap-2"><i class="fa-solid fa-power-off"></i> Start Camera</button>
+                    <button onclick="stopScanner()" id="stop-btn" class="hidden bg-destructive text-destructive-foreground px-8 py-3 rounded-full font-bold shadow hover:opacity-90 transition-all flex items-center gap-2"><i class="fa-solid fa-stop"></i> Stop Camera</button>
+                </div>
+            </div>
+            
+            <div class="flex flex-col gap-6">
+                <div class="bg-card p-6 rounded-lg border shadow-sm">
+                    <h3 class="font-bold text-lg mb-4 flex items-center gap-2 text-primary"><i class="fa-solid fa-keyboard"></i> Manual Entry</h3>
+                    <form onsubmit="handleManualSubmit(event)" class="flex gap-3">
+                        <input type="text" id="manual-input" placeholder="Enter Student ID (e.g. 2026001)" class="flex-1 border rounded-md px-4 py-2 focus:ring-2 focus:ring-primary outline-none bg-background">
+                        <button type="submit" class="bg-secondary text-secondary-foreground px-6 py-2 rounded-md font-bold hover:bg-secondary/80 transition-colors border border-border">Log</button>
+                    </form>
+                </div>
+                
+                <div class="bg-card flex-1 rounded-lg border shadow-sm overflow-hidden flex flex-col min-h-[300px]">
+                    <div id="result-container" class="hidden p-4 text-center font-bold border-b transition-colors"><span id="scan-message"></span></div>
+                    <div class="p-3 bg-muted/30 border-b text-xs font-bold text-muted-foreground uppercase tracking-wide">Session Activity</div>
+                    <div id="scan-log" class="p-4 overflow-y-auto flex-1 space-y-2 text-sm bg-background">
+                        <div class="text-center py-8 text-muted-foreground opacity-50"><i class="fa-solid fa-clock-rotate-left text-2xl mb-2 block"></i>Waiting for scans...</div>
                     </div>
                 </div>
             </div>
         </div>
-    </div>
+    </main>
+</div>
 
-    <script>
-        let html5QrcodeScanner = null;
-        let isScanning = false;
+<script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
+<script>
+    const html5QrCode = new Html5Qrcode("reader");
+    let isScanning = false; let lastScanToken = ""; let lastScanTime = 0;
 
-        document.getElementById('start-scan').addEventListener('click', startScanning);
-        document.getElementById('stop-scan').addEventListener('click', stopScanning);
+    function onScanSuccess(decodedText) { processAttendance(decodedText); }
 
-        function startScanning() {
-            if (isScanning) return;
+    function processAttendance(identifier) {
+        if (identifier === lastScanToken && Date.now() - lastScanTime < 3000) return;
+        lastScanToken = identifier; lastScanTime = Date.now();
 
-            const qrReaderElement = document.getElementById('qr-reader');
-            qrReaderElement.style.display = 'block';
-            
-            html5QrcodeScanner = new Html5QrcodeScanner(
-                "qr-reader",
-                { 
-                    fps: 10, 
-                    qrbox: { width: 250, height: 250 },
-                    aspectRatio: 1.0
-                },
-                false
-            );
+        const container = document.getElementById('result-container');
+        const msg = document.getElementById('scan-message');
+        container.classList.remove('hidden');
+        container.className = "p-4 text-center font-bold border-b bg-blue-50 text-blue-700";
+        msg.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Processing...';
 
-            html5QrcodeScanner.render(onScanSuccess, onScanFailure);
-            
-            document.getElementById('start-scan').style.display = 'none';
-            document.getElementById('stop-scan').style.display = 'inline-block';
-            isScanning = true;
-        }
+        fetch('api/log_attendance.php', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ qr_token: identifier }) })
+        .then(response => response.json())
+        .then(data => updateUI(data))
+        .catch(err => updateUI({ success: false, message: "Network Error" }));
+    }
 
-        function stopScanning() {
-            if (!isScanning) return;
+    function updateUI(data) {
+        const container = document.getElementById('result-container');
+        const msg = document.getElementById('scan-message');
+        const log = document.getElementById('scan-log');
 
-            if (html5QrcodeScanner) {
-                html5QrcodeScanner.clear();
-                html5QrcodeScanner = null;
-            }
-
-            document.getElementById('qr-reader').style.display = 'none';
-            document.getElementById('start-scan').style.display = 'inline-block';
-            document.getElementById('stop-scan').style.display = 'none';
-            isScanning = false;
-        }
-
-        function onScanSuccess(decodedText, decodedResult) {
-            processAttendance(decodedText);
-        }
-
-        function onScanFailure(error) {
-            // silently fail
-        }
-
-        function processAttendance(qrCode) {
-            fetch('api/log_attendance.php', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ qr_token: qrCode })
-            })
-            .then(response => response.json())
-            .then(data => {
-                showScanResult(data);
-                if (data.success) loadRecentScans();
-            })
-            .catch(error => {
-                showScanResult({ success: false, message: 'Network error occurred' });
-            });
-        }
-
-        function showScanResult(result) {
-            const resultElement = document.getElementById('scan-result');
-            resultElement.style.display = 'block';
-            
-            if (result.success) {
-                resultElement.className = 'scan-result scan-success';
-                resultElement.innerHTML = `<div class="text-lg font-semibold">✅ Success!</div><div>${result.message}</div>`;
+        if(data.success) {
+            if (data.message.includes('TIME OUT')) {
+                container.className = "p-4 text-center font-bold border-b bg-blue-100 text-blue-800";
+                msg.innerHTML = '<i class="fa-solid fa-person-walking-arrow-right"></i> ' + data.message;
+            } else if (data.message.includes('Late')) {
+                container.className = "p-4 text-center font-bold border-b bg-yellow-100 text-yellow-800";
+                msg.innerHTML = '<i class="fa-solid fa-triangle-exclamation"></i> ' + data.message;
             } else {
-                resultElement.className = 'scan-result scan-error';
-                resultElement.innerHTML = `<div class="text-lg font-semibold">❌ Error</div><div>${result.message}</div>`;
+                container.className = "p-4 text-center font-bold border-b bg-green-100 text-green-800";
+                msg.innerHTML = '<i class="fa-solid fa-check-circle"></i> ' + data.message;
             }
-
-            setTimeout(() => { resultElement.style.display = 'none'; }, 3000);
+        } else {
+            container.className = "p-4 text-center font-bold border-b bg-red-100 text-red-800";
+            msg.innerHTML = '<i class="fa-solid fa-circle-xmark"></i> ' + data.message;
         }
 
-        function loadRecentScans() {
-            fetch('api/recent_scans.php')
-                .then(response => response.json())
-                .then(data => {
-                    const container = document.getElementById('recent-scans');
-                    if (data.length === 0) {
-                        container.innerHTML = '<p class="text-gray-500 text-center py-4">No scans yet today</p>';
-                        return;
-                    }
+        const entry = document.createElement('div');
+        entry.className = `p-3 rounded-md border-l-4 text-sm flex justify-between items-center shadow-sm bg-card ${data.success ? (data.message.includes('OUT') ? 'border-blue-500' : 'border-green-500') : 'border-red-500'}`;
+        entry.innerHTML = `<span class="font-medium">${data.message}</span><span class="text-xs text-muted-foreground">${new Date().toLocaleTimeString()}</span>`;
+        
+        if(log.innerText.includes("Waiting")) log.innerHTML = '';
+        log.insertBefore(entry, log.firstChild);
+    }
 
-                    let html = '<div class="space-y-3">';
-                    data.forEach(scan => {
-                        html += `
-                            <div class="flex items-center justify-between p-3 bg-gray-100 rounded-lg">
-                                <div>
-                                    <div class="font-medium">${scan.student_name}</div>
-                                    <div class="text-sm text-gray-500">${scan.grade_section}</div>
-                                </div>
-                                <div class="text-right">
-                                    <div class="text-sm font-medium">${scan.time_in}</div>
-                                    <span class="status-${scan.status.toLowerCase()}">${scan.status}</span>
-                                </div>
-                            </div>
-                        `;
-                    });
-                    html += '</div>';
-                    container.innerHTML = html;
-                });
-        }
-
-        loadRecentScans();
-    </script>
+    function startScanner() { document.getElementById('start-btn').classList.add('hidden'); document.getElementById('stop-btn').classList.remove('hidden'); html5QrCode.start({ facingMode: "environment" }, { fps: 10, qrbox: { width: 250, height: 250 } }, onScanSuccess); isScanning = true; }
+    function stopScanner() { if(isScanning) { html5QrCode.stop().then(() => { document.getElementById('start-btn').classList.remove('hidden'); document.getElementById('stop-btn').classList.add('hidden'); document.getElementById('reader').innerHTML = '<p class="text-muted-foreground text-sm flex flex-col items-center gap-2"><i class="fa-solid fa-video-slash text-2xl"></i> Camera is off</p>'; isScanning = false; }); } }
+    function handleManualSubmit(e) { e.preventDefault(); const inp = document.getElementById('manual-input'); if(inp.value.trim()) { processAttendance(inp.value.trim()); inp.value = ''; inp.focus(); } }
+</script>
 </body>
 </html>

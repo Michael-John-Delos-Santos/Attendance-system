@@ -1,79 +1,45 @@
 <?php
-// Database configuration
+// Database Settings
 define('DB_HOST', 'localhost');
+define('DB_NAME', 'attendance_db');
 define('DB_USER', 'root');
 define('DB_PASS', '');
-define('DB_NAME', 'attendance_db');
 
-// SMTP configuration for email notifications
-define('SMTP_HOST', 'smtp.gmail.com');
-define('SMTP_PORT', 587);
-define('SMTP_USERNAME', 'michaelapril81416@gmail.com');
-define('SMTP_PASSWORD', 'xqhseaxhhpsyzkld');
-define('SMTP_FROM_EMAIL', 'michaelapril81416@gmail.com');
-define('SMTP_FROM_NAME', 'School of St. Maximilian Mary Kolbe');
+// School Settings
+define('SCHOOL_NAME', 'School of Saint Maximillian Mary Kolbe');
 
-// Application settings
-define('TIMEZONE', 'Asia/Manila');
-define('SCHOOL_NAME', 'School of St. Maximilian Mary Kolbe, Inc.');
+// 1. SAFE SESSION START
+// This fixes the "Ignoring session_start()" error
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
 
-// Set timezone
-date_default_timezone_set(TIMEZONE);
-
-// Database connection
+// 2. Database Connection
 function getDBConnection() {
     try {
-        $pdo = new PDO(
-            "mysql:host=" . DB_HOST . ";dbname=" . DB_NAME . ";charset=utf8mb4",
-            DB_USER,
-            DB_PASS,
-            [
-                PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
-                PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
-                PDO::ATTR_EMULATE_PREPARES => false,
-            ]
-        );
+        $dsn = "mysql:host=" . DB_HOST . ";dbname=" . DB_NAME . ";charset=utf8mb4";
+        $pdo = new PDO($dsn, DB_USER, DB_PASS);
+        $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
         return $pdo;
     } catch (PDOException $e) {
-        die("Database connection failed: " . $e->getMessage());
+        die("Database Connection Failed: " . $e->getMessage());
     }
 }
 
-// Helper function to generate QR token (short unique token)
-function generateQRToken() {
-    return substr(uniqid(), 0, 10);
-}
-
-// Helper function to validate QR token
-function validateQRToken($qr_token) {
-    $pdo = getDBConnection();
-    $stmt = $pdo->prepare("SELECT * FROM students WHERE qr_token = ? AND status = 'Active'");
-    $stmt->execute([$qr_token]);
-    return $stmt->fetch(PDO::FETCH_ASSOC);
-}
-
-// Session management
-session_start();
-
-function isLoggedIn() {
-    return isset($_SESSION['faculty_id']);
-}
-
-function requireLogin() {
-    if (!isLoggedIn()) {
+// 3. Admin Authentication Check
+function requireAdmin() {
+    if (!isset($_SESSION['admin_logged_in']) || $_SESSION['admin_logged_in'] !== true) {
         header('Location: login.php');
         exit;
     }
 }
 
-function getCurrentUser() {
-    if (!isLoggedIn()) {
-        return null;
-    }
-    
+// 4. Verify Admin Key (For sensitive actions)
+function verifyAdminKey($inputKey) {
     $pdo = getDBConnection();
-    $stmt = $pdo->prepare("SELECT * FROM faculty WHERE faculty_id = ?");
-    $stmt->execute([$_SESSION['faculty_id']]);
-    return $stmt->fetch();
+    $stmt = $pdo->prepare("SELECT admin_key FROM admin_config WHERE id = 1");
+    $stmt->execute();
+    $config = $stmt->fetch();
+    return ($config && $inputKey === $config['admin_key']);
 }
 ?>

@@ -1,81 +1,66 @@
--- Updated database schema for School of St. Maximilian Mary Kolbe
--- Create the attendance database and tables for School of St. Maximilian Mary Kolbe
-CREATE DATABASE IF NOT EXISTS attendance_db;
+DROP DATABASE IF EXISTS attendance_db;
+CREATE DATABASE attendance_db;
 USE attendance_db;
 
--- Students table
+-- 1. Admin Configuration
+CREATE TABLE admin_config (
+    id INT PRIMARY KEY CHECK (id = 1),
+    username VARCHAR(50) NOT NULL,
+    password_hash VARCHAR(255) NOT NULL,
+    admin_key VARCHAR(255) NOT NULL, 
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Default Admin: admin / password123 | Key: SCHOOL-KEY-2026
+INSERT INTO admin_config (id, username, password_hash, admin_key) 
+VALUES (1, 'admin', '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'SCHOOL-KEY-2026');
+
+-- 2. Grade Level Schedules (NEW TABLE)
+CREATE TABLE grade_settings (
+    grade_level VARCHAR(50) PRIMARY KEY,
+    start_time TIME NOT NULL DEFAULT '08:00:00' -- The time a student is considered "Late"
+);
+
+-- Seed Default Times
+INSERT INTO grade_settings (grade_level, start_time) VALUES 
+('Nursery', '08:00:00'),
+('Kinder', '08:00:00'),
+('Preparatory', '08:00:00'),
+('Grade 1', '07:30:00'),
+('Grade 2', '07:30:00'),
+('Grade 3', '07:30:00'),
+('Grade 4', '07:00:00'),
+('Grade 5', '07:00:00'),
+('Grade 6', '07:00:00');
+
+-- 3. Students Table
 CREATE TABLE students (
   student_id INT AUTO_INCREMENT PRIMARY KEY,
-  roll_number VARCHAR(20) UNIQUE NOT NULL,
-  qr_token VARCHAR(10) UNIQUE NOT NULL,
-  first_name VARCHAR(50) NOT NULL,
-  last_name VARCHAR(50) NOT NULL,
-  grade_section VARCHAR(50) NOT NULL,
+  student_id_number VARCHAR(50) UNIQUE NOT NULL,
+  qr_token VARCHAR(50) UNIQUE NOT NULL,
+  first_name VARCHAR(100) NOT NULL,
+  last_name VARCHAR(100) NOT NULL,
+  grade_level ENUM(
+      'Nursery', 'Kinder', 'Preparatory', 
+      'Grade 1', 'Grade 2', 'Grade 3', 
+      'Grade 4', 'Grade 5', 'Grade 6'
+  ) NOT NULL,
   parent_name VARCHAR(100),
   parent_email VARCHAR(100),
   status ENUM('Active','Inactive') DEFAULT 'Active',
-  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
--- Faculty table
-CREATE TABLE faculty (
-  faculty_id INT AUTO_INCREMENT PRIMARY KEY,
-  username VARCHAR(50) UNIQUE NOT NULL,
-  password VARCHAR(255) NOT NULL,
-  full_name VARCHAR(100) NOT NULL,
-  role ENUM('Teacher','Admin') DEFAULT 'Teacher',
-  status ENUM('Active','Inactive') DEFAULT 'Active',
-  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
-);
-
--- Attendance table
+-- 4. Attendance Table
 CREATE TABLE attendance (
   attendance_id INT AUTO_INCREMENT PRIMARY KEY,
   student_id INT NOT NULL,
   attendance_date DATE NOT NULL,
   time_in TIME NOT NULL,
   status ENUM('Present','Absent','Late') DEFAULT 'Present',
-  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   FOREIGN KEY (student_id) REFERENCES students(student_id) ON DELETE CASCADE,
-  UNIQUE KEY unique_student_date (student_id, attendance_date)
+  UNIQUE KEY unique_daily_log (student_id, attendance_date)
 );
 
--- Notifications table for parent email tracking
-CREATE TABLE notifications (
-  notification_id INT AUTO_INCREMENT PRIMARY KEY,
-  student_id INT,
-  parent_email VARCHAR(100),
-  message TEXT,
-  email_subject VARCHAR(200),
-  sent_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-  status ENUM('Sent','Failed','Pending') DEFAULT 'Pending',
-  FOREIGN KEY (student_id) REFERENCES students(student_id) ON DELETE CASCADE
-);
-
--- Create indexes for better performance
+CREATE INDEX idx_student_qr ON students(qr_token);
 CREATE INDEX idx_attendance_date ON attendance(attendance_date);
-CREATE INDEX idx_attendance_student ON attendance(student_id);
-CREATE INDEX idx_notifications_date ON notifications(sent_at);
-CREATE INDEX idx_students_status ON students(status);
-CREATE INDEX idx_students_roll ON students(roll_number);
-CREATE INDEX idx_students_qr ON students(qr_token);
-
--- Faculty attendance (manual Clock In / Clock Out)
-CREATE TABLE faculty_attendance (
-    id INT AUTO_INCREMENT PRIMARY KEY,
-    faculty_id INT NOT NULL,
-    attendance_date DATE NOT NULL,
-    time_in TIME DEFAULT NULL,
-    time_out TIME DEFAULT NULL,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    UNIQUE KEY faculty_date (faculty_id, attendance_date),
-    FOREIGN KEY (faculty_id) REFERENCES faculty(faculty_id) ON DELETE CASCADE
-);
-
--- Indexes for faster lookup
-CREATE INDEX idx_faculty_attendance_date ON faculty_attendance(attendance_date);
-CREATE INDEX idx_faculty_attendance_faculty ON faculty_attendance(faculty_id);
-
