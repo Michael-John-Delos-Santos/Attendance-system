@@ -35,10 +35,11 @@
         <?php
         $nav = [
             'index.php' => ['icon' => 'fa-chart-pie', 'label' => 'Dashboard'],
-            'scan.php' => ['icon' => 'fa-qrcode', 'label' => 'Scanner'],
             'students.php' => ['icon' => 'fa-user-graduate', 'label' => 'Students'],
             'schedule.php' => ['icon' => 'fa-clock', 'label' => 'Schedule'],
+            'scan.php' => ['icon' => 'fa-qrcode', 'label' => 'Scanner'],
             'reports.php' => ['icon' => 'fa-file-contract', 'label' => 'Reports'],
+            'settings.php' => ['icon' => 'fa-gear', 'label' => 'Settings'], // NEW LINK
         ];
         
         $current = basename($_SERVER['PHP_SELF']);
