@@ -39,7 +39,8 @@
             'schedule.php' => ['icon' => 'fa-clock', 'label' => 'Schedule'],
             'scan.php' => ['icon' => 'fa-qrcode', 'label' => 'Scanner'],
             'reports.php' => ['icon' => 'fa-file-contract', 'label' => 'Reports'],
-            'settings.php' => ['icon' => 'fa-gear', 'label' => 'Settings'], // NEW LINK
+            'analytics.php' => ['icon' => 'fa-chart-bar', 'label' => 'Analytics'],
+            'settings.php' => ['icon' => 'fa-gear', 'label' => 'Settings'], 
         ];
         
         $current = basename($_SERVER['PHP_SELF']);

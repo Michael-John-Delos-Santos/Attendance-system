@@ -232,8 +232,8 @@ require_once 'header.php';
                             <th class="px-6 py-3 whitespace-nowrap"><?= getSortLink('attendance_date', 'Date', $sort, $dir) ?></th>
                             <th class="px-6 py-3 whitespace-nowrap"><?= getSortLink('last_name', 'Student Name', $sort, $dir) ?></th>
                             <th class="px-6 py-3 whitespace-nowrap"><?= getSortLink('grade_level', 'Grade', $sort, $dir) ?></th>
-                            <th class="px-6 py-3 whitespace-nowrap"><?= getSortLink('time_in', 'Time In', $sort, $dir) ?></th>
-                            <th class="px-6 py-3 whitespace-nowrap"><?= getSortLink('time_out', 'Time Out', $sort, $dir) ?></th>
+                            <th class="px-6 py-3 whitespace-nowrap">Time in</th>
+                            <th class="px-6 py-3 whitespace-nowrap">Time out</th>
                             <th class="px-6 py-3 whitespace-nowrap"><?= getSortLink('status', 'Status', $sort, $dir) ?></th>
                         </tr>
                     </thead>
